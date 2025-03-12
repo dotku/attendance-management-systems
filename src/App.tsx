@@ -1,91 +1,134 @@
-import React, { useState, useEffect } from 'react';
-import LeaveForm from './components/LeaveForm';
-import StatsChart from './components/StatsChart';
+import { useState, useEffect } from 'react';
+import { AttendanceRecord, DepartmentStats } from './types';
+import AttendanceForm from './components/AttendanceForm';
+import DepartmentStatsChart from './components/DepartmentStatsChart';
 import SearchRecords from './components/SearchRecords';
-import { LeaveRecord, MonthlyStats } from './types';
-import { format } from 'date-fns';
-import { supabase } from './lib/supabase';
 
 function App() {
-  const [records, setRecords] = useState<LeaveRecord[]>([]);
-  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats[]>([]);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [departmentStats, setDepartmentStats] = useState<DepartmentStats[]>([]);
 
   useEffect(() => {
     fetchRecords();
   }, []);
 
-  const fetchRecords = async () => {
-    const { data, error } = await supabase
-      .from('leave_records')
-      .select('*')
-      .order('created_at', { ascending: false });
+  const fetchRecords = () => {
+    // Initialize with mock data for now
+    const mockData: AttendanceRecord[] = [
+      {
+        id: 1,
+        department: '公司1',
+        unit: '1连',
+        name: '张一',
+        startDate: '2023-12-18',
+        startTime: '09:00',
+        endDate: '2023-12-18',
+        endTime: '18:00',
+        location: '广州市',
+        reason: '看病',
+        contact: '11111111111',
+        approver: '王五'
+      },
+      {
+        id: 2,
+        department: '公司1',
+        unit: '2连',
+        name: '张三',
+        startDate: '2023-12-18',
+        startTime: '13:30',
+        endDate: '2023-12-18',
+        endTime: '18:00',
+        location: '广州市',
+        reason: '购物'
+      },
+      {
+        id: 3,
+        department: '公司1',
+        unit: '3连',
+        name: '张三',
+        startDate: '2023-12-18',
+        startTime: '09:00',
+        endDate: '2023-12-18',
+        endTime: '18:00',
+        location: '广州市',
+        reason: '见亲友'
+      },
+      {
+        id: 4,
+        department: '公司1',
+        unit: '4连',
+        name: '张四',
+        startDate: '2023-12-18',
+        startTime: '09:00',
+        endDate: '2023-12-18',
+        endTime: '18:00',
+        location: '广州市',
+        reason: '购物'
+      },
+      {
+        id: 5,
+        department: '公司2',
+        unit: '1连',
+        name: '张七',
+        startDate: '2023-12-09',
+        startTime: '09:00',
+        endDate: '2023-12-09',
+        endTime: '18:00',
+        location: '医院',
+        reason: '购物'
+      },
+      {
+        id: 6,
+        department: '公司2',
+        unit: '2连',
+        name: '张八',
+        startDate: '2023-12-10',
+        startTime: '09:00',
+        endDate: '2023-12-10',
+        endTime: '18:00',
+        location: '长宁镇',
+        reason: '购物'
+      }
+    ];
 
-    if (error) {
-      console.error('Error fetching records:', error);
-      return;
-    }
-
-    setRecords(data.map(record => ({
-      id: record.id,
-      name: record.name,
-      personnelType: record.personnel_type,
-      startDate: record.start_date,
-      endDate: record.end_date,
-      reason: record.reason
-    })));
-  };
-
-  const handleSubmit = async (record: Omit<LeaveRecord, 'id'>) => {
-    const { data, error } = await supabase
-      .from('leave_records')
-      .insert([{
-        name: record.name,
-        personnel_type: record.personnelType,
-        start_date: record.startDate,
-        end_date: record.endDate,
-        reason: record.reason,
-        user_id: (await supabase.auth.getUser()).data.user?.id
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating record:', error);
-      return;
-    }
-
-    await fetchRecords();
+    setRecords(mockData);
   };
 
   useEffect(() => {
-    // Calculate monthly statistics
-    const stats = records.reduce((acc: { [key: string]: MonthlyStats }, record) => {
-      const month = format(new Date(record.startDate), 'yyyy-MM');
-      
-      if (!acc[month]) {
-        acc[month] = {
-          month,
-          officer: 0,
-          soldier: 0,
-          civilian: 0,
+    // Calculate department statistics
+    const stats = records.reduce((acc: { [key: string]: DepartmentStats }, record) => {
+      if (!acc[record.department]) {
+        acc[record.department] = {
+          department: record.department,
+          totalRecords: 0,
+          unitStats: {}
         };
       }
       
-      acc[month][record.personnelType]++;
+      acc[record.department].totalRecords++;
+      acc[record.department].unitStats[record.unit] = 
+        (acc[record.department].unitStats[record.unit] || 0) + 1;
+      
       return acc;
     }, {});
 
-    setMonthlyStats(Object.values(stats).sort((a, b) => a.month.localeCompare(b.month)));
+    setDepartmentStats(Object.values(stats));
   }, [records]);
+
+  const handleSubmit = async (record: Omit<AttendanceRecord, 'id'>) => {
+    const newId = records.length + 1;
+    const newRecord = { ...record, id: newId };
+    setRecords([...records, newRecord]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">请假管理系统</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">外出管理系统</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <LeaveForm onSubmit={handleSubmit} />
-          <StatsChart data={monthlyStats} />
+          <AttendanceForm onSubmit={handleSubmit} />
+          <DepartmentStatsChart data={departmentStats} />
         </div>
         
         <SearchRecords records={records} />

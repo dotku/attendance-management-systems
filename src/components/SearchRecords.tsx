@@ -1,96 +1,131 @@
-import React, { useState } from 'react';
-import { LeaveRecord } from '../types';
-import { Search } from 'lucide-react';
-import { format } from 'date-fns';
+import { useState } from 'react';
+import { AttendanceRecord } from '../types';
 
 interface SearchRecordsProps {
-  records: LeaveRecord[];
+  records: AttendanceRecord[];
 }
 
 export default function SearchRecords({ records }: SearchRecordsProps) {
-  const [searchName, setSearchName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterUnit, setFilterUnit] = useState('');
+
+  const departments = [...new Set(records.map(record => record.department))];
+  const units = [...new Set(records.map(record => record.unit))];
 
   const filteredRecords = records.filter(record => {
-    const nameMatch = record.name.toLowerCase().includes(searchName.toLowerCase());
-    const dateMatch = (!startDate || record.startDate >= startDate) && 
-                     (!endDate || record.endDate <= endDate);
-    return nameMatch && dateMatch;
+    const matchesSearch = searchTerm === '' || 
+      record.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.location.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesDepartment = filterDepartment === '' || record.department === filterDepartment;
+    const matchesUnit = filterUnit === '' || record.unit === filterUnit;
+
+    return matchesSearch && matchesDepartment && matchesUnit;
   });
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-lg">
-      <div className="flex items-center gap-3 mb-8">
-        <Search className="w-7 h-7 text-blue-600" />
-        <h2 className="text-2xl font-semibold text-gray-800">记录查询</h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">姓名</label>
+    <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div className="flex-1">
           <input
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             type="text"
-            value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
-            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg
-                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                     hover:bg-gray-50 transition-colors duration-200
-                     placeholder:text-gray-400"
-            placeholder="输入姓名搜索"
+            placeholder="搜索姓名、事由或地点..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">开始日期</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg
-                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                     hover:bg-gray-50 transition-colors duration-200
-                     cursor-pointer"
-          />
+          <select
+            className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={filterDepartment}
+            onChange={(e) => setFilterDepartment(e.target.value)}
+          >
+            <option value="">所有部门</option>
+            {departments.map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">结束日期</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg
-                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                     hover:bg-gray-50 transition-colors duration-200
-                     cursor-pointer"
-          />
+          <select
+            className="shadow border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={filterUnit}
+            onChange={(e) => setFilterUnit(e.target.value)}
+          >
+            <option value="">所有科室</option>
+            {units.map(unit => (
+              <option key={unit} value={unit}>{unit}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto">
+        <table className="min-w-full leading-normal">
+          <thead>
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">人员类型</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">开始日期</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">结束日期</th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">原因</th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                部门
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                科室
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                姓名
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                开始时间
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                结束时间
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                外出地点
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                外出事由
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                联系方式
+              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                批准人
+              </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody>
             {filteredRecords.map((record) => (
-              <tr key={record.id} className="hover:bg-gray-50 transition-colors duration-150">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {record.personnelType === 'officer' && '军官'}
-                  {record.personnelType === 'soldier' && '义务兵'}
-                  {record.personnelType === 'civilian' && '文职人员'}
+              <tr key={record.id}>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.department}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.startDate}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.endDate}</td>
-                <td className="px-6 py-4 text-sm text-gray-900">{record.reason}</td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.unit}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.name}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.startDate} {record.startTime}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.endDate} {record.endTime}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.location}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.reason}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.contact || '-'}
+                </td>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                  {record.approver || '-'}
+                </td>
               </tr>
             ))}
           </tbody>
