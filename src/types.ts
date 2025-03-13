@@ -21,7 +21,7 @@ export interface AttendanceRecord {
   department: string;      // 部门
   unit: string;           // 科室
   name: string;           // 姓名
-  militaryControl?: string; // 军管
+  militaryRank?: string;  // 军官头衔
   startDate: string;      // 开始日期
   startTime: string;      // 开始时间
   endDate: string;        // 结束日期
